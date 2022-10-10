@@ -1,0 +1,57 @@
+﻿@page "/contacts"
+@inject IContactService ContactService
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using BlazorApp.Shared
+@attribute [Authorize]
+
+<PageTitle>Contacts</PageTitle>
+<h3>Contacts</h3>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>surname</th>
+            <th>mail</th>
+            <th>Tel. no</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var contact in ContactService.Contacts){
+        <tr>
+            <td>@contact.Name</td>
+            <td>@contact.Surname</td>
+            <td>@contact.Mail</td>
+            <td>@contact.Telepfone</td>
+            <td>
+                    <button class="btn btn-primary" @onclick="(() => ShowContact(contact.Id))"> <i class="oi oi-person"></i> See more</button>
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>
+<button class="btn btn-primary" @onclick="CreateContact">create new contact</button>
+
+@code {
+    //sends user to specyfic contact by id
+    void ShowContact(int id)
+    {
+        NavigationManager.NavigateTo($"/singlecontact/{id}");
+    }
+    // Gets the users 
+    protected override async Task OnInitializedAsync()
+    {
+        await ContactService.GetContacts();
+
+    }
+    //sending user to the create form
+    void CreateContact()
+    {
+        NavigationManager.NavigateTo("/singlecontact");
+    }
+
+}

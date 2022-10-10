@@ -1,0 +1,167 @@
+﻿@page "/singlecontact"
+@page "/singlecontact/{id:int}"
+@inject IContactService ContactService
+
+@if (Id == null)
+{
+    <PageTitle>Create new contact</PageTitle>
+    <h3>Create new contact</h3>
+
+}
+else
+{
+    <PageTitle>Edit @contact.Name</PageTitle>
+    <h3>Edit @contact.Name</h3>
+}
+
+<EditForm Model="contact" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+
+    <div>
+        <label for="name">Name</label>
+        <InputText id="name" @bind-Value="contact.Name" class="form-control"></InputText>
+    </div>
+
+    <div>
+        <label for="surname">Surname</label>
+        <InputText id="surname" @bind-Value="contact.Surname" class="form-control"></InputText>
+    </div>
+
+    <div>
+        <label for="password">Password</label>
+        <InputText id="password" @bind-Value="contact.Password" class="form-control" type="password"></InputText>
+    </div>
+
+    <div>
+        <label for="">Mail</label>
+        <InputText id="mail" @bind-Value="contact.Mail" class="form-control" type="email"></InputText>
+    </div>
+
+    
+    <div>
+        <label>Category</label>
+        <InputSelect @bind-Value="contact.CategoryID " class="form-select">
+            @foreach (var category in ContactService.Categories)
+            {
+                <option value="@category.Id" >@category.Cat</option>
+
+                if (contact.CategoryID!=3)
+                {
+                    contact.SubCategoryId = 0;
+                }
+            }
+            
+        </InputSelect>
+        
+        @if (contact.CategoryID == 3) //display or hide subcategory options
+        {
+            <label>Sub-category</label>
+            <InputSelect @bind-Value="contact.SubCategoryId" class="form-select disabled">
+                @foreach (var subcategory in ContactService.SubCategories)
+                {
+                    <option value="@subcategory.Id">@subcategory.SubCat</option>
+                }
+            </InputSelect>
+        }
+        
+        
+    </div>
+
+
+   
+
+    <div>
+        <label for="telephone">Telephone no.</label>
+        <InputText id="telephone" @bind-Value="contact.Telepfone" class="form-control" type="tel"   placeholder="603 405 678" ></InputText>
+    </div>
+
+    <div>
+        <label for="birthday">Birthday</label>        
+        <InputDate id="birthday" @bind-Value="contact.Birthdate" class="form-control"></InputDate>
+    </div>
+    <br />
+    <div >
+        <button type="submit" class="btn btn-primary" style="display:inline">@btnText</button>
+        @if (Id != null)
+        {
+            <button type="button" class="btn btn-danger" style="display:inline" @onclick="DeleteContact"> Delete</button>
+        }
+        
+    </div>
+</EditForm>
+
+
+@code {
+
+
+    [Parameter]
+    public int? Id{ get; set; }
+
+    Contact contact = new Contact{Category = new Category() };
+    SubCategory SubCategory = new SubCategory();
+
+    string btnText = string.Empty;
+
+    //get contacts data
+    protected override async Task OnInitializedAsync()
+    {
+        btnText = Id == null ? "Save new contact" : "Update contact";
+        await ContactService.GetCategories();
+        await ContactService.GetSubCategories();
+    }
+
+    //we use the same form to update and create new contacts
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id==null)
+        {
+            //create new contact
+            contact.Category = ContactService.Categories[0];
+            contact.CategoryID = contact.Category.Id;
+        }
+        else
+        {   //gives data on specyfied contact by id
+            contact = await ContactService.GetSingleContact((int)Id);
+        }
+    }
+    //on submit, we update or create contacts 
+    async Task HandleSubmit()
+    {
+        if (Id==null)
+        {
+            //password is Encoded for privacy
+            contact.Password = Encode(contact.Password);
+            await ContactService.CreateContact(contact);
+
+        }
+        else
+        {
+            contact.Password= Encode(contact.Password);
+            await ContactService.UpdateContact(contact);
+        }
+    }
+    //deleting contacts 
+    async Task DeleteContact()
+    {
+        await ContactService.DeleteContact(contact.Id);
+    }
+    //simple encoder so thet we don't store pw in plane text
+    public string Encode (string password)
+    {
+        try
+        {
+            byte[] EncDataByte = new byte[password.Length];
+            EncDataByte = System.Text.Encoding.UTF8.GetBytes(password);
+            string EncryptedData = Convert.ToBase64String(EncDataByte);
+            return EncryptedData;
+        }
+        catch (Exception ex)
+        {
+            
+            throw new Exception("unable to Encode: "+ex.Message);
+        }
+    }
+
+}
